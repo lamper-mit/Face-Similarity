@@ -45,7 +45,8 @@ def get_embedding(photo_path):
         return None
     # Get the embedding for the detected face
     results = DeepFace.represent(img_path=photo_path, model_name="VGG-Face", enforce_detection=True)
-    return results[0]['embedding']
+    photo_embedding = results[0]['embedding']
+    return photo_embedding/np.linalg.norm(photo_embedding)
 
 def calculate_composite_from_directory(directory):
     """
