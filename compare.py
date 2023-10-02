@@ -45,8 +45,7 @@ def get_embedding(photo_path):
         return None
     # Get the embedding for the detected face
     results = DeepFace.represent(img_path=photo_path, model_name="VGG-Face", enforce_detection=True)
-    photo_embedding = results[0]['embedding']
-    return photo_embedding/np.linalg.norm(photo_embedding)
+    return results[0]['embedding']
 
 def calculate_composite_from_directory(directory):
     """
@@ -67,7 +66,8 @@ def calculate_composite_from_directory(directory):
                 embeddings.append(embedding)
         else:
             print(f"Ignoring non-image file: {file}")
-    return np.mean(embeddings, axis=0)
+        composite_mean = np.mean(embeddings, axis=0)
+    return composite_mean/np.linalg.norm(composite_mean)
 
 def verify_with_composite(photo_path, composite_embedding, cutoff):
     """
@@ -84,6 +84,7 @@ def verify_with_composite(photo_path, composite_embedding, cutoff):
     photo_embedding = get_embedding(photo_path)
     if photo_embedding is None:
         return False
+    photo_embedding = photo_embedding/np.linalg.norm(photo_embedding)
     distance = np.linalg.norm(photo_embedding - composite_embedding)
     scores[photo_path] = distance
     return distance < cutoff
