@@ -1,0 +1,4 @@
+deepface
+numpy
+PIL
+pyheif
