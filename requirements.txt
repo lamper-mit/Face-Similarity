@@ -1,4 +1,4 @@
 deepface
 numpy
-PIL
+pillow
 pyheif
