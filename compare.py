@@ -12,6 +12,8 @@ from deepface.commons import functions
 # List of allowed image extensions
 ALLOWED_EXTENSIONS = {'.jpg', '.jpeg', '.png', '.bmp', '.gif','.heic', '.tiff'}
 scores = {}
+composite_norm = 0
+photo_norm = 0
 def convert_heic_to_jpg(heic_path):
     heif_file = pyheif.read(heic_path)
     image = Image.frombytes(
@@ -48,21 +50,23 @@ def calculate_composite_from_directory(directory):
         else:
             print(f"Ignoring non-image file: {file}")
     composite_mean = np.mean(embeddings, axis=0)
-    return composite_mean/np.linalg.norm(composite_mean)
+    composite_norm = np.linalg.norm(composite_mean)
+    return composite_mean/composite_norm
 
 def verify_with_composite(photo_path, composite_embedding, cutoff):
     photo_embedding = get_embedding(photo_path)
     if photo_embedding is None:
         return False
-    photo_embedding = photo_embedding/np.linalg.norm(photo_embedding)
-    print((np.linalg.norm(photo_embedding)))
-    distance = np.linalg.norm(photo_embedding - composite_embedding)
-    scores[photo_path] = distance
-    return distance < cutoff
+    photo_norm = np.linalg.norm(photo_embedding)
+    photo_embedding = photo_embedding/photo_norm
+    dot_product = np.dot(photo_embedding,composite_embedding)
+    similarity = dot_product/(photo_norm*composite_norm)
+    scores[photo_path] = similarity
+    return similarity > cutoff
 
 def verify_and_copy(source_directory, target_directory, reference_directory, cutoff=0.4):
     composite_embedding = calculate_composite_from_directory(reference_directory)
-    print(np.linalg.norm(composite_embedding))
+    
     for file in os.listdir(source_directory):
         if is_image_file(file):
             file_path = os.path.join(source_directory, file)
