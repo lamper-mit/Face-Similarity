@@ -61,7 +61,7 @@ def verify_with_composite(photo_path, composite_embedding, cutoff):
     photo_embedding = photo_embedding/photo_norm
     distance = np.linalg.norm(photo_embedding - composite_embedding)
     scores[photo_path] = distance
-    return similarity < cutoff
+    return distance < cutoff
 
 def verify_and_copy(source_directory, target_directory, reference_directory, cutoff=0.4):
     composite_embedding = calculate_composite_from_directory(reference_directory)
