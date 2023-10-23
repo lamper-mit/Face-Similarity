@@ -27,6 +27,16 @@ def convert_heic_to_jpg(heic_path):
     jpg_path = heic_path.replace('.heic', '.jpg')
     image.save(jpg_path, "JPEG")
     return jpg_path
+def ensure_rgb_format(image_path):
+    """
+    Ensure that the image at the given path is in RGB format.
+    If not, convert it to RGB and save it.
+    """
+    with Image.open(image_path) as img:
+        if img.mode != 'RGB':
+            img = img.convert('RGB')
+            img.save(image_path)
+
 def is_image_file(filename):
     return os.path.splitext(filename)[1].lower() in ALLOWED_EXTENSIONS
 
@@ -74,7 +84,7 @@ def verify_and_copy(source_directory, target_directory, reference_directory, cut
             if file_path.endswith('.heic'):
                 file_path = convert_heic_to_jpg(file_path)
                 os.remove(file_path.replace('.jpg', '.heic'))
-            
+            ensure_rgb_format(file_path)
             verify_with_composite(file_path, composite_embedding, cutoff)
     
     # Sort the scores from most to least similar and filter by cutoff
