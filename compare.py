@@ -98,6 +98,7 @@ def verify_and_copy(source_directory, target_directory, reference_directory, cut
                 os.remove(file_path.replace('.jpg', '.heic'))
             ensure_rgb_format(file_path)
             embedding = get_embedding(file_path)
+            print(embedding)
             if embedding is not None:
                 source_embeddings.append(np.array(embedding))
     outliers = identify_outliers(source_embeddings)
