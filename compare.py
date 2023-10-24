@@ -37,6 +37,8 @@ def identify_outliers(embeddings):
     """
     means = np.mean(embeddings, axis=0)
     std_devs = np.std(embeddings, axis=0)
+    if np.any(std_devs == 0):
+        print("Warning: Zero standard deviation detected.")
     
     z_scores = np.abs((embeddings - means) / std_devs)
     max_z_scores = np.max(z_scores, axis=1)
@@ -60,7 +62,10 @@ def get_embedding(photo_path):
         print(f"No face detected in {photo_path}. Skipping...")
         return None
     results = DeepFace.represent(img_path=photo_path, model_name="VGG-Face", enforce_detection=True)
-    return np.array(results[0]['embedding'])
+    embedding =  np.array(results[0]['embedding'])
+    if np.isnan(embedding).any():
+        print(f"Warning: NaN values detected in embedding for {photo_path}")
+    return embedding 
 
 def calculate_similarity_scores(photo_path, source_embeddings):
     target_embedding = get_embedding(photo_path)
@@ -75,6 +80,9 @@ def calculate_similarity_scores(photo_path, source_embeddings):
 
     # Calculate the mean of the distances
     mean_distance = np.mean(distances)
+    if np.isnan(mean_distance):
+        print(f"Warning: NaN similarity score for {photo_path}")
+        return None
     return mean_distance
 
 
