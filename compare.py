@@ -48,10 +48,12 @@ def get_embedding(photo_path):
 
 def calculate_similarity_scores(photo_path, source_embeddings):
     distances = []
+    target_embedding = get_embedding(photo_path)
     for embedding in source_embeddings:
-        distance = np.linalg.norm(embedding - get_embedding(photo_path))
+        distance = np.linalg.norm(np.array(embedding) - np.array(target_embedding))
         distances.append(distance)
     return np.mean(distances)
+
 
 def verify_and_copy(source_directory, target_directory, reference_directory, cutoff=0.4):
     source_embeddings = []
@@ -64,7 +66,7 @@ def verify_and_copy(source_directory, target_directory, reference_directory, cut
             ensure_rgb_format(file_path)
             embedding = get_embedding(file_path)
             if embedding is not None:
-                source_embeddings.append(embedding)
+                source_embeddings.append(np.array(embedding))
     
     for file in os.listdir(reference_directory):
         if is_image_file(file):
