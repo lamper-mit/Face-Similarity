@@ -9,7 +9,7 @@ import pyheif
 import numpy as np
 from deepface.commons import functions
 from scipy.spatial import distance
-
+from scipy.stats import zscore
 # List of allowed image extensions
 ALLOWED_EXTENSIONS = {'.jpg', '.jpeg', '.png', '.bmp', '.gif', '.heic', '.tiff'}
 scores = {}
@@ -30,6 +30,22 @@ def convert_heic_to_jpg(heic_path):
 
 def is_image_file(filename):
     return os.path.splitext(filename)[1].lower() in ALLOWED_EXTENSIONS
+def identify_outliers(embeddings):
+    """
+    Identify outliers in a list of embeddings using Z-score.
+    Returns a list of boolean values, where True indicates that the corresponding embedding is an outlier.
+    """
+    means = np.mean(embeddings, axis=0)
+    std_devs = np.std(embeddings, axis=0)
+    
+    z_scores = np.abs((embeddings - means) / std_devs)
+    max_z_scores = np.max(z_scores, axis=1)
+    
+    # Consider an embedding as an outlier if any of its dimensions has a Z-score greater than 2.
+    # This threshold can be adjusted as needed.
+    outliers = max_z_scores > 2
+    
+    return outliers
 
 def ensure_rgb_format(image_path):
     with Image.open(image_path) as img:
@@ -47,12 +63,19 @@ def get_embedding(photo_path):
     return np.array(results[0]['embedding'])
 
 def calculate_similarity_scores(photo_path, source_embeddings):
-    distances = []
     target_embedding = get_embedding(photo_path)
+    if target_embedding is None:
+        print(f"Skipping {photo_path} due to no embedding.")
+        return None
+
+    distances = []
     for embedding in source_embeddings:
         distance = np.linalg.norm(np.array(embedding) - np.array(target_embedding))
         distances.append(distance)
-    return np.mean(distances)
+
+    # Calculate the mean of the distances
+    mean_distance = np.mean(distances)
+    return mean_distance
 
 
 def verify_and_copy(source_directory, target_directory, reference_directory, cutoff=0.4):
@@ -67,11 +90,15 @@ def verify_and_copy(source_directory, target_directory, reference_directory, cut
             embedding = get_embedding(file_path)
             if embedding is not None:
                 source_embeddings.append(np.array(embedding))
-    
+    outliers = identify_outliers(source_embeddings)
+    source_embeddings = [embedding for i, embedding in enumerate(source_embeddings) if not outliers[i]]
+
     for file in os.listdir(reference_directory):
         if is_image_file(file):
             file_path = os.path.join(reference_directory, file)
             similarity_score = calculate_similarity_scores(file_path, source_embeddings)
+            if similarity_score is None:
+                continue
             scores[file_path] = similarity_score
     
     sorted_scores = dict(sorted(scores.items(), key=lambda item: item[1]))
