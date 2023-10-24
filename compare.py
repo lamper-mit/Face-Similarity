@@ -102,7 +102,8 @@ def verify_and_copy(source_directory, target_directory, reference_directory, cut
                 source_embeddings.append(np.array(embedding))
     outliers = identify_outliers(source_embeddings)
     source_embeddings = [embedding for i, embedding in enumerate(source_embeddings) if not outliers[i]]
-
+    # Log the source embeddings
+    print(f"Source embeddings: {source_embeddings}")
     for file in os.listdir(reference_directory):
         if is_image_file(file):
             file_path = os.path.join(reference_directory, file)
