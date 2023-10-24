@@ -77,6 +77,10 @@ def calculate_similarity_scores(photo_path, source_embeddings):
     for embedding in source_embeddings:
         distance = np.linalg.norm(np.array(embedding) - np.array(target_embedding))
         distances.append(distance)
+        if np.isnan(distance):
+            print(f"Warning: NaN distance calculated for {photo_path} with an embedding from source directory.")
+            print(f"Target embedding: {target_embedding}")
+            print(f"Source embedding: {embedding}")
 
     # Calculate the mean of the distances
     mean_distance = np.mean(distances)
