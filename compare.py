@@ -44,7 +44,7 @@ def get_embedding(photo_path):
         print(f"No face detected in {photo_path}. Skipping...")
         return None
     results = DeepFace.represent(img_path=photo_path, model_name="VGG-Face", enforce_detection=True)
-    return results[0]['embedding']
+    return np.array(results[0]['embedding'])
 
 def calculate_similarity_scores(photo_path, source_embeddings):
     distances = []
