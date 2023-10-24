@@ -8,12 +8,12 @@ from PIL import Image
 import pyheif
 import numpy as np
 from deepface.commons import functions
+from scipy.spatial import distance
 
 # List of allowed image extensions
-ALLOWED_EXTENSIONS = {'.jpg', '.jpeg', '.png', '.bmp', '.gif','.heic', '.tiff'}
+ALLOWED_EXTENSIONS = {'.jpg', '.jpeg', '.png', '.bmp', '.gif', '.heic', '.tiff'}
 scores = {}
-composite_norm = 0
-photo_norm = 0
+
 def convert_heic_to_jpg(heic_path):
     heif_file = pyheif.read(heic_path)
     image = Image.frombytes(
@@ -27,18 +27,15 @@ def convert_heic_to_jpg(heic_path):
     jpg_path = heic_path.replace('.heic', '.jpg')
     image.save(jpg_path, "JPEG")
     return jpg_path
+
+def is_image_file(filename):
+    return os.path.splitext(filename)[1].lower() in ALLOWED_EXTENSIONS
+
 def ensure_rgb_format(image_path):
-    """
-    Ensure that the image at the given path is in RGB format.
-    If not, convert it to RGB and save it.
-    """
     with Image.open(image_path) as img:
         if img.mode != 'RGB':
             img = img.convert('RGB')
             img.save(image_path)
-
-def is_image_file(filename):
-    return os.path.splitext(filename)[1].lower() in ALLOWED_EXTENSIONS
 
 def get_embedding(photo_path):
     try:
@@ -49,56 +46,41 @@ def get_embedding(photo_path):
     results = DeepFace.represent(img_path=photo_path, model_name="VGG-Face", enforce_detection=True)
     return results[0]['embedding']
 
-def calculate_composite_from_directory(directory):
-    embeddings = []
-    for file in os.listdir(directory):
-        if is_image_file(file):
-            file_path = os.path.join(directory, file)
-            embedding = get_embedding(file_path)
-            if embedding is not None: 
-                embeddings.append(embedding)
-        else:
-            print(f"Ignoring non-image file: {file}")
-    composite_mean = np.mean(embeddings, axis=0)
-    composite_norm = np.linalg.norm(composite_mean)
-    return composite_mean/composite_norm
-
-def verify_with_composite(photo_path, composite_embedding, cutoff):
-    photo_embedding = get_embedding(photo_path)
-    if photo_embedding is None:
-        return False
-    photo_norm = np.linalg.norm(photo_embedding)
-    photo_embedding = photo_embedding/photo_norm
-    distance = np.linalg.norm(photo_embedding - composite_embedding)
-    scores[photo_path] = distance
-    return distance < cutoff
+def calculate_similarity_scores(photo_path, source_embeddings):
+    distances = []
+    for embedding in source_embeddings:
+        distance = np.linalg.norm(embedding - get_embedding(photo_path))
+        distances.append(distance)
+    return np.mean(distances)
 
 def verify_and_copy(source_directory, target_directory, reference_directory, cutoff=0.4):
-    composite_embedding = calculate_composite_from_directory(reference_directory)
-    
+    source_embeddings = []
     for file in os.listdir(source_directory):
         if is_image_file(file):
             file_path = os.path.join(source_directory, file)
-            
-            # Check if the file is a .heic and convert it to .jpg if it is
             if file_path.endswith('.heic'):
                 file_path = convert_heic_to_jpg(file_path)
                 os.remove(file_path.replace('.jpg', '.heic'))
             ensure_rgb_format(file_path)
-            verify_with_composite(file_path, composite_embedding, cutoff)
+            embedding = get_embedding(file_path)
+            if embedding is not None:
+                source_embeddings.append(embedding)
     
-    # Sort the scores from most to least similar and filter by cutoff
+    for file in os.listdir(reference_directory):
+        if is_image_file(file):
+            file_path = os.path.join(reference_directory, file)
+            similarity_score = calculate_similarity_scores(file_path, source_embeddings)
+            scores[file_path] = similarity_score
+    
     sorted_scores = dict(sorted(scores.items(), key=lambda item: item[1]))
     filtered_scores = {k: v for k, v in sorted_scores.items() if v < cutoff}
     
-    # Copy the images in order of their similarity scores
     for photo_path in filtered_scores.keys():
         if os.path.exists(photo_path):
             file_name = os.path.basename(photo_path)
             target_path = os.path.join(target_directory, file_name)
             shutil.copy(photo_path, target_path)
     
-    # Create the output dictionary with cutoff and scores
     output_data = {
         "cutoff": cutoff,
         "scores": sorted_scores
@@ -106,6 +88,7 @@ def verify_and_copy(source_directory, target_directory, reference_directory, cut
     
     with open(os.path.join(target_directory, 'similarity_scores.json'), 'w') as json_file:
         json.dump(output_data, json_file, indent=4)
+
 if __name__ == "__main__":
     if len(sys.argv) < 4 or len(sys.argv) > 5:
         print("Usage: ./verify_photos.py <source_directory> <target_directory> <reference_directory> [distance_cutoff],/n Check your parameters and try again.")
