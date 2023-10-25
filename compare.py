@@ -117,20 +117,16 @@ def verify_and_copy(source_directory, target_directory, reference_directory, cut
     if cutoff is not None:
         sorted_scores = dict(sorted(scores.items(), key=lambda item: item[1]))
         filtered_scores = {k: v for k, v in sorted_scores.items() if v < cutoff}
-    else:
-        filtered_scores = scores
-    
-    # Copy the images in order of their similarity scores
-    for photo_path in filtered_scores.keys():
-        if os.path.exists(photo_path):
-            file_name = os.path.basename(photo_path)
-            target_path = os.path.join(target_directory, file_name)
-            shutil.copy(photo_path, target_path)
+        for photo_path in filtered_scores.keys():
+            if os.path.exists(photo_path):
+                file_name = os.path.basename(photo_path)
+                target_path = os.path.join(target_directory, file_name)
+                shutil.copy(photo_path, target_path)
     
     # Create the output dictionary with cutoff and scores
     output_data = {
         "cutoff": cutoff,
-        "scores": scores
+        "scores": sorted_scores
     }
     
     with open(os.path.join(target_directory, 'similarity_scores.json'), 'w') as json_file:
