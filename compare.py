@@ -8,6 +8,7 @@ from PIL import Image
 import pyheif
 import numpy as np
 from deepface.commons import functions
+from sklearn.ensemble import IsolationForest
 from scipy.spatial import distance
 from scipy.stats import zscore
 # List of allowed image extensions
@@ -32,23 +33,17 @@ def is_image_file(filename):
     return os.path.splitext(filename)[1].lower() in ALLOWED_EXTENSIONS
 def identify_outliers(embeddings):
     """
-    Identify outliers in a list of embeddings using Z-score.
+    Identify outliers in a list of embeddings using Isolation Forest.
     Returns a list of boolean values, where True indicates that the corresponding embedding is an outlier.
     """
-    means = np.mean(embeddings, axis=0)
-    std_devs = np.std(embeddings, axis=0)
-    if np.any(std_devs == 0):
-        print("Warning: Zero standard deviation detected.")
+    # Train the Isolation Forest model
+    clf = IsolationForest(contamination=0.1)  # contamination parameter can be tuned
+    predictions = clf.fit_predict(embeddings)
     
-    z_scores = np.abs((embeddings - means) / std_devs)
-    max_z_scores = np.max(z_scores, axis=1)
-    
-    # Consider an embedding as an outlier if any of its dimensions has a Z-score greater than 2.
-    # This threshold can be adjusted as needed.
-    outliers = max_z_scores > 2
+    # Convert -1 labels (outliers) to True, and 1 labels (inliers) to False
+    outliers = predictions == -1
     
     return outliers
-
 def ensure_rgb_format(image_path):
     with Image.open(image_path) as img:
         if img.mode != 'RGB':
@@ -102,17 +97,15 @@ def verify_and_copy(source_directory, target_directory, reference_directory, cut
                 source_embeddings.append(np.array(embedding))
                 print(source_embeddings)
     outliers = identify_outliers(source_embeddings)
-    print(outliers)
-    source_embeddings = [embedding for i, embedding in enumerate(source_embeddings) if not outliers[i]]
-    # Log the source embeddings
-    print(f"Source embeddings: {source_embeddings}")
-    for file in os.listdir(reference_directory):
-        if is_image_file(file):
-            file_path = os.path.join(reference_directory, file)
-            similarity_score = calculate_similarity_scores(file_path, source_embeddings)
-            if similarity_score is None:
-                continue
-            scores[file_path] = similarity_score
+     # Exclude outliers from further processing
+    inlier_file_paths = [file_path for idx, file_path in enumerate(file_paths) if not outliers[idx]]
+    inlier_embeddings = [embedding for idx, embedding in enumerate(source_embeddings) if not outliers[idx]]
+    # Continue with the rest of the function using inlier_file_paths and inlier_embeddings
+    for file_path in inlier_file_paths:
+        similarity_score = calculate_similarity_scores(file_path, inlier_embeddings)
+        if similarity_score is None:
+            continue
+        scores[file_path] = similarity_score
     
     sorted_scores = dict(sorted(scores.items(), key=lambda item: item[1]))
     filtered_scores = {k: v for k, v in sorted_scores.items() if v < cutoff}
