@@ -83,7 +83,7 @@ def calculate_similarity_scores(photo_path, source_embeddings):
     return mean_distance
 
 
-def verify_and_copy(source_directory, target_directory, reference_directory, cutoff=0.4):
+def verify_and_copy(source_directory, target_directory, reference_directory, cutoff=0.5):
     source_embeddings = []
     file_paths = []
     for file in os.listdir(source_directory):
@@ -133,6 +133,6 @@ if __name__ == "__main__":
     source_directory = sys.argv[1]
     target_directory = sys.argv[2]
     reference_directory = sys.argv[3]
-    distance_cutoff = float(sys.argv[4]) if len(sys.argv) == 5 else 0.60
+    distance_cutoff = float(sys.argv[4]) if len(sys.argv) == 5
 
     verify_and_copy(source_directory, target_directory, reference_directory, distance_cutoff)
