@@ -83,47 +83,59 @@ def calculate_similarity_scores(photo_path, source_embeddings):
     return mean_distance
 
 
-def verify_and_copy(source_directory, target_directory, reference_directory, cutoff=0.5):
-    source_embeddings = []
-    file_paths = []
+def verify_and_copy(source_directory, target_directory, reference_directory, cutoff=None):
+    # Get embeddings for all images in the reference directory
+    reference_embeddings = []
+    for file in os.listdir(reference_directory):
+        if is_image_file(file):
+            file_path = os.path.join(reference_directory, file)
+            
+            # Ensure the image is in RGB format
+            ensure_rgb_format(file_path)
+            
+            embedding = get_embedding(file_path)
+            if embedding is not None:
+                reference_embeddings.append(np.array(embedding))
+
+    # Identify outliers in the reference embeddings
+    outliers = identify_outliers(reference_embeddings)
+    filtered_reference_embeddings = [emb for idx, emb in enumerate(reference_embeddings) if not outliers[idx]]
+
     for file in os.listdir(source_directory):
         if is_image_file(file):
             file_path = os.path.join(source_directory, file)
-            if file_path.endswith('.heic'):
-                file_path = convert_heic_to_jpg(file_path)
-                os.remove(file_path.replace('.jpg', '.heic'))
+            
+            # Ensure the image is in RGB format
             ensure_rgb_format(file_path)
-            embedding = get_embedding(file_path)
-            if embedding is not None:
-                source_embeddings.append(np.array(embedding))
-                file_paths.append(file_path)
-    outliers = identify_outliers(source_embeddings)
-     # Exclude outliers from further processing
-    inlier_file_paths = [file_path for idx, file_path in enumerate(file_paths) if not outliers[idx]]
-    inlier_embeddings = [embedding for idx, embedding in enumerate(source_embeddings) if not outliers[idx]]
-    # Continue with the rest of the function using inlier_file_paths and inlier_embeddings
-    for file_path in inlier_file_paths:
-        similarity_score = calculate_similarity_scores(file_path, inlier_embeddings)
-        if similarity_score is None:
-            continue
-        scores[file_path] = similarity_score
+            
+            similarity_score = calculate_similarity_scores(file_path, filtered_reference_embeddings)
+            if similarity_score is None:
+                continue
+            scores[file_path] = similarity_score
     
-    sorted_scores = dict(sorted(scores.items(), key=lambda item: item[1]))
-    filtered_scores = {k: v for k, v in sorted_scores.items() if v < cutoff}
+    # If a cutoff is provided, filter the scores
+    if cutoff is not None:
+        sorted_scores = dict(sorted(scores.items(), key=lambda item: item[1]))
+        filtered_scores = {k: v for k, v in sorted_scores.items() if v < cutoff}
+    else:
+        filtered_scores = scores
     
+    # Copy the images in order of their similarity scores
     for photo_path in filtered_scores.keys():
         if os.path.exists(photo_path):
             file_name = os.path.basename(photo_path)
             target_path = os.path.join(target_directory, file_name)
             shutil.copy(photo_path, target_path)
     
+    # Create the output dictionary with cutoff and scores
     output_data = {
         "cutoff": cutoff,
-        "scores": sorted_scores
+        "scores": scores
     }
     
     with open(os.path.join(target_directory, 'similarity_scores.json'), 'w') as json_file:
         json.dump(output_data, json_file, indent=4)
+
 
 if __name__ == "__main__":
     if len(sys.argv) < 4 or len(sys.argv) > 5:
