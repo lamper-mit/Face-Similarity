@@ -85,6 +85,7 @@ def calculate_similarity_scores(photo_path, source_embeddings):
 
 def verify_and_copy(source_directory, target_directory, reference_directory, cutoff=0.4):
     source_embeddings = []
+    file_paths = []
     for file in os.listdir(source_directory):
         if is_image_file(file):
             file_path = os.path.join(source_directory, file)
@@ -95,7 +96,7 @@ def verify_and_copy(source_directory, target_directory, reference_directory, cut
             embedding = get_embedding(file_path)
             if embedding is not None:
                 source_embeddings.append(np.array(embedding))
-                print(source_embeddings)
+                file_paths.append(file_path)
     outliers = identify_outliers(source_embeddings)
      # Exclude outliers from further processing
     inlier_file_paths = [file_path for idx, file_path in enumerate(file_paths) if not outliers[idx]]
