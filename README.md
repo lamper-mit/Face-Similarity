@@ -19,8 +19,10 @@ From Command Prompt or PowerShell:
 
 Activating the Virtual Environment:
 1) Navigate to the Face-Similarity Directory
+   
 Linux/Mac:
 2) Enter: source venv/bin/activate
+
 Windows:
 2) Enter: venv\Scripts\activate.bat
 
