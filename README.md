@@ -12,7 +12,7 @@ Download and Installation Guide:
 Linux/Mac:
 
 From the command Line:
-1) Enter: git https://github.com/lamper-mit/Face-Similarity.git
+1) Enter: git clone https://github.com/lamper-mit/Face-Similarity.git
 2) Navigate to the Face-Similarity Directory
 3) Enter: chmod +x setup.sh
 4) Enter: ./setup.sh
