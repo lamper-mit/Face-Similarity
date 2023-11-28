@@ -14,14 +14,14 @@ Linux/Mac:
 From the command Line:
 1) Enter: git clone https://github.com/lamper-mit/Face-Similarity.git
 2) Navigate to the Face-Similarity Directory
-3) Enter: chmod +x setup.sh
-4) Enter: ./setup.sh
+3) Enter: chmod +x install.sh
+4) Enter: ./install.sh
 
 Windows:
 From Command Prompt or PowerShell:
 1) Enter: git https://github.com/lamper-mit/Face-Similarity.git
 2) Navigate to the Face-Similarity Directory
-3) Enter: setup.bat
+3) Enter: install.bat
 
 Activating the Virtual Environment:
 1) Navigate to the Face-Similarity Directory
