@@ -5,7 +5,6 @@ import shutil
 import json
 from deepface import DeepFace
 from PIL import Image
-import imagecodecs
 import numpy as np
 from deepface.commons import functions
 from sklearn.ensemble import IsolationForest
@@ -16,15 +15,11 @@ ALLOWED_EXTENSIONS = {'.jpg', '.jpeg', '.png', '.bmp', '.gif', '.heic', '.tiff'}
 scores = {}
 
 def convert_heic_to_jpg(heic_path):
-    with open(heic_path, 'rb') as file:
-        heic_data = file.read()
+   # Open HEIF or HEIC file
+    image = Image.open(heic_path)
 
-    # Decode HEIC data to a raw image
-    raw_image = imagecodecs.heif_decode(heic_data)
-
-    # Convert raw image to PIL Image
-    image = Image.fromarray(raw_image)
-
+    # Convert to JPEG
+    image.convert('RGB')
     # Save as JPG
     jpg_path = heic_path.replace('.heic', '.jpg')
     image.save(jpg_path, "JPEG")
