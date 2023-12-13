@@ -9,4 +9,5 @@ REM Step 3: Install dependencies from requirements.txt
 pip install -r requirements.txt
 
 echo Setup completed. Virtual environment created and dependencies installed.
-echo To activate the virtual environment, use: venv\Scripts\activate.bat
+echo To activate the virtual environment, use: .\venv\Scripts\activate
+
