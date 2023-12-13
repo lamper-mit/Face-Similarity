@@ -135,7 +135,7 @@ def verify_and_copy(source_directory, target_directory, reference_directory, cut
 
 if __name__ == "__main__":
     if len(sys.argv) < 4 or len(sys.argv) > 5:
-        print("Usage: ./verify_photos.py <source_directory> <target_directory> <reference_directory> [distance_cutoff],/n Check your parameters and try again.")
+        print("Usage: ./compare.py <source_directory> <target_directory> <reference_directory> [distance_cutoff],/n Check your parameters and try again.")
         sys.exit(1)
 
     source_directory = sys.argv[1]
