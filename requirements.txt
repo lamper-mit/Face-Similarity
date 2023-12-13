@@ -1,6 +1,5 @@
 deepface
 numpy
 pillow
-pyheif
 scikit-learn
 scipy
