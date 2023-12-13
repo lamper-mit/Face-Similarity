@@ -91,7 +91,8 @@ def verify_and_copy(source_directory, target_directory, reference_directory, cut
     for file in os.listdir(reference_directory):
         if is_image_file(file):
             file_path = os.path.join(reference_directory, file)
-            
+            if file.lower().endswith('.heic'):
+                file_path = convert_heic_to_jpg(file_path)
             # Ensure the image is in RGB format
             ensure_rgb_format(file_path)
             
