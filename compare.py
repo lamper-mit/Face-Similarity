@@ -5,7 +5,7 @@ import shutil
 import json
 from deepface import DeepFace
 from PIL import Image
-import pyheif
+import imagecodecs
 import numpy as np
 from deepface.commons import functions
 from sklearn.ensemble import IsolationForest
@@ -16,19 +16,21 @@ ALLOWED_EXTENSIONS = {'.jpg', '.jpeg', '.png', '.bmp', '.gif', '.heic', '.tiff'}
 scores = {}
 
 def convert_heic_to_jpg(heic_path):
-    heif_file = pyheif.read(heic_path)
-    image = Image.frombytes(
-        heif_file.mode, 
-        heif_file.size, 
-        heif_file.data,
-        "raw",
-        heif_file.mode,
-        heif_file.stride,
-    )
+    with open(heic_path, 'rb') as file:
+        heic_data = file.read()
+
+    # Decode HEIC data to a raw image
+    raw_image = imagecodecs.heif_decode(heic_data)
+
+    # Convert raw image to PIL Image
+    image = Image.fromarray(raw_image)
+
+    # Save as JPG
     jpg_path = heic_path.replace('.heic', '.jpg')
     image.save(jpg_path, "JPEG")
-    return jpg_path
 
+    return jpg_path
+    
 def is_image_file(filename):
     return os.path.splitext(filename)[1].lower() in ALLOWED_EXTENSIONS
 def identify_outliers(embeddings):
