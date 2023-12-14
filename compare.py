@@ -15,15 +15,17 @@ ALLOWED_EXTENSIONS = {'.jpg', '.jpeg', '.png', '.bmp', '.gif', '.heic', '.tiff'}
 scores = {}
 
 def convert_heic_to_jpg(heic_path):
-   # Open HEIF or HEIC file
-    image = Image.open(heic_path)
-
-    # Convert to JPEG
-    image.convert('RGB')
-    # Save as JPG
+    heif_file = pyheif.read(heic_path)
+    image = Image.frombytes(
+        heif_file.mode, 
+        heif_file.size, 
+        heif_file.data,
+        "raw",
+        heif_file.mode,
+        heif_file.stride,
+    )
     jpg_path = heic_path.replace('.heic', '.jpg')
     image.save(jpg_path, "JPEG")
-
     return jpg_path
     
 def is_image_file(filename):
