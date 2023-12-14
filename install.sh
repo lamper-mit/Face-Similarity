@@ -7,7 +7,7 @@ python3 -m venv venv
 source venv/bin/activate
 
 # Step 3: Install dependencies from requirements.txt
-pip install -r requirements.txt
+pip install -r requirements_linux.txt
 
 # Step 4: Make the main script (compare.py) executable
 chmod +x compare.py
