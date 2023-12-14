@@ -41,8 +41,8 @@ Running the tool:
 
 Linux/Max:
 
-./compare.py /path/to/source_directory /path/to/target_directory /path/to/reference_directory distance_cutoff
+./compare_linux.py /path/to/source_directory /path/to/target_directory /path/to/reference_directory distance_cutoff
 
 Windows:
 
-python compare.py \path\to\source_directory \path\to\target_directory \path\to\reference_directory distance_cutoff
+python compare_windows.py \path\to\source_directory \path\to\target_directory \path\to\reference_directory distance_cutoff
