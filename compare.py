@@ -6,6 +6,7 @@ import json
 from deepface import DeepFace
 from PIL import Image
 import numpy as np
+import pyheif
 from deepface.commons import functions
 from sklearn.ensemble import IsolationForest
 from scipy.spatial import distance
