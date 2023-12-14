@@ -1,6 +1,8 @@
 # Face-Similarity
 Similarity Tool for determining whether faces in photos are similar to a reference directory of face photos of the subject in question.
 
+WINDOWS NOTE: Currently pyheif is not comptaible on Windows, if running on windows, use must comment out the import of pyheif in the compare.py script, this also inhibits the use of .heic images, so be aware of the image types you are using.
+
 Parameters:
 source_directory - Photos that will be scored on face similarity
 target_directory - Where the photos that meet the cutoff and the scores will be placed
