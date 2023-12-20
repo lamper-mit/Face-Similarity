@@ -105,8 +105,8 @@ def filter_embeddings_and_calculate_average_similarity(embeddings, outlier_thres
                                   for j in range(i+1, num_embeddings) if non_outliers[i] and non_outliers[j]])
 
     return filtered_embeddings, average_similarity
-def verify_and_copy(source_directory, target_directory, reference_directory, cutoff=None,outlier_threshold=1.0):
-      """
+def verify_and_copy(source_directory, target_directory, reference_directory, cutoff=None, outlier_threshold=1.0):
+    """
     Verify images in the source directory against the reference directory,
     and copy images that meet the similarity cutoff to the target directory.
 
@@ -116,14 +116,12 @@ def verify_and_copy(source_directory, target_directory, reference_directory, cut
     reference_directory (str): Path to the reference directory containing reference images.
     cutoff (float, optional): The similarity score cutoff. If None, calculated dynamically.
     """
-    # Get embeddings for all images in the reference directory
     reference_embeddings = []
     for file in os.listdir(reference_directory):
         if is_image_file(file):
             file_path = os.path.join(reference_directory, file)
             if file.lower().endswith('.heic'):
                 file_path = convert_heic_to_jpg(file_path)
-            # Ensure the image is in RGB format
             ensure_rgb_format(file_path)
             
             embedding = get_embedding(file_path)
@@ -132,13 +130,12 @@ def verify_and_copy(source_directory, target_directory, reference_directory, cut
 
     filtered_reference_embeddings, average_similarity = filter_embeddings_and_calculate_average_similarity(reference_embeddings, outlier_threshold)
 
-    # Increase by 20% for safety margin. Use the calculated cutoff if none is provided.
     cutoff = (1 + 0.20) * average_similarity if cutoff is None else cutoff
+    
+    scores = {}
     for file in os.listdir(source_directory):
         if is_image_file(file):
             file_path = os.path.join(source_directory, file)
-            
-            # Ensure the image is in RGB format
             ensure_rgb_format(file_path)
             
             similarity_score = calculate_similarity_scores(file_path, filtered_reference_embeddings)
@@ -146,9 +143,8 @@ def verify_and_copy(source_directory, target_directory, reference_directory, cut
                 continue
             scores[file_path] = similarity_score
     
-    # If a cutoff is provided, filter the scores
+    sorted_scores = dict(sorted(scores.items(), key=lambda item: item[1]))
     if cutoff is not None:
-        sorted_scores = dict(sorted(scores.items(), key=lambda item: item[1]))
         filtered_scores = {k: v for k, v in sorted_scores.items() if v < cutoff}
         for photo_path in filtered_scores.keys():
             if os.path.exists(photo_path):
@@ -156,7 +152,6 @@ def verify_and_copy(source_directory, target_directory, reference_directory, cut
                 target_path = os.path.join(target_directory, file_name)
                 shutil.copy(photo_path, target_path)
     
-    # Create the output dictionary with cutoff and scores
     output_data = {
         "cutoff": cutoff,
         "scores": sorted_scores
@@ -165,7 +160,7 @@ def verify_and_copy(source_directory, target_directory, reference_directory, cut
     with open(os.path.join(target_directory, 'similarity_scores.json'), 'w') as json_file:
         json.dump(output_data, json_file, indent=4)
 
-
+    return output_data
 if __name__ == "__main__":
     if len(sys.argv) < 4 or len(sys.argv) > 5:
         print("Usage: ./compare.py <source_directory> <target_directory> <reference_directory> [distance_cutoff],/n Check your parameters and try again.")
