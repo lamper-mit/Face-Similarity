@@ -10,7 +10,7 @@ source venv/bin/activate
 pip install -r requirements_linux.txt
 
 # Step 4: Make the main script (compare.py) executable
-chmod +x compare.py
+chmod +x compare_linux.py
 
 echo "Setup completed. Virtual environment created and dependencies installed."
 echo "To activate the virtual environment, use: source venv/bin/activate"
