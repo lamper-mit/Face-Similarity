@@ -130,7 +130,7 @@ def verify_and_copy(source_directory, target_directory, reference_directory, cut
             if embedding is not None:
                 reference_embeddings.append(np.array(embedding))
 
-  filtered_reference_embeddings, average_similarity = filter_embeddings_and_calculate_average_similarity(reference_embeddings, outlier_threshold)
+    filtered_reference_embeddings, average_similarity = filter_embeddings_and_calculate_average_similarity(reference_embeddings, outlier_threshold)
 
     # Increase by 20% for safety margin. Use the calculated cutoff if none is provided.
     cutoff = (1 + 0.20) * average_similarity if cutoff is None else cutoff
