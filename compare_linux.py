@@ -31,19 +31,6 @@ def convert_heic_to_jpg(heic_path):
     
 def is_image_file(filename):
     return os.path.splitext(filename)[1].lower() in ALLOWED_EXTENSIONS
-def identify_outliers(embeddings):
-    """
-    Identify outliers in a list of embeddings using Isolation Forest.
-    Returns a list of boolean values, where True indicates that the corresponding embedding is an outlier.
-    """
-    # Train the Isolation Forest model
-    clf = IsolationForest(contamination=0.1)  # contamination parameter can be tuned
-    predictions = clf.fit_predict(embeddings)
-    
-    # Convert -1 labels (outliers) to True, and 1 labels (inliers) to False
-    outliers = predictions == -1
-    
-    return outliers
 def ensure_rgb_format(image_path):
     with Image.open(image_path) as img:
         if img.mode != 'RGB':
@@ -60,8 +47,9 @@ def get_embedding(photo_path):
     embedding =  np.array(results[0]['embedding'])
     if np.isnan(embedding).any():
         print(f"Warning: NaN values detected in embedding for {photo_path}")
-    return embedding 
+    return embedding
 
+    
 def calculate_similarity_scores(photo_path, source_embeddings):
     target_embedding = get_embedding(photo_path)
     if target_embedding is None:
@@ -82,8 +70,52 @@ def calculate_similarity_scores(photo_path, source_embeddings):
         return None
     return mean_distance
 
+def filter_embeddings_and_calculate_average_similarity(embeddings, outlier_threshold=1.0):
+    """
+    Remove outliers based on L2 norm and calculate the average similarity score among the remaining embeddings.
 
-def verify_and_copy(source_directory, target_directory, reference_directory, cutoff=0.45):
+    Args:
+    embeddings (list): A list of embeddings (numpy arrays).
+    outlier_threshold (float): Threshold for determining outliers.
+
+    Returns:
+    tuple: A tuple containing the filtered embeddings and the average similarity score.
+    """
+    num_embeddings = len(embeddings)
+    distances_matrix = np.zeros((num_embeddings, num_embeddings))
+
+    # Calculate pairwise L2 distances
+    for i in range(num_embeddings):
+        for j in range(i + 1, num_embeddings):
+            distance = np.linalg.norm(embeddings[i] - embeddings[j])
+            distances_matrix[i, j] = distance
+            distances_matrix[j, i] = distance
+
+    # Determine the mean distance for each embedding
+    mean_distances = np.mean(distances_matrix, axis=1)
+
+    # Identify embeddings with mean distance above the threshold
+    non_outliers = mean_distances < outlier_threshold
+
+    # Filter out outliers
+    filtered_embeddings = [emb for idx, emb in enumerate(embeddings) if non_outliers[idx]]
+
+    # Calculate average similarity (distance) among the remaining embeddings
+    average_similarity = np.mean([distances_matrix[i, j] for i in range(num_embeddings) 
+                                  for j in range(i+1, num_embeddings) if non_outliers[i] and non_outliers[j]])
+
+    return filtered_embeddings, average_similarity
+def verify_and_copy(source_directory, target_directory, reference_directory, cutoff=None,outlier_threshold=1.0)):
+      """
+    Verify images in the source directory against the reference directory,
+    and copy images that meet the similarity cutoff to the target directory.
+
+    Args:
+    source_directory (str): Path to the source directory containing images to be verified.
+    target_directory (str): Path to the target directory where matching images will be copied.
+    reference_directory (str): Path to the reference directory containing reference images.
+    cutoff (float, optional): The similarity score cutoff. If None, calculated dynamically.
+    """
     # Get embeddings for all images in the reference directory
     reference_embeddings = []
     for file in os.listdir(reference_directory):
@@ -98,10 +130,10 @@ def verify_and_copy(source_directory, target_directory, reference_directory, cut
             if embedding is not None:
                 reference_embeddings.append(np.array(embedding))
 
-    # Identify outliers in the reference embeddings
-    outliers = identify_outliers(reference_embeddings)
-    filtered_reference_embeddings = [emb for idx, emb in enumerate(reference_embeddings) if not outliers[idx]]
+  filtered_reference_embeddings, average_similarity = filter_embeddings_and_calculate_average_similarity(reference_embeddings, outlier_threshold)
 
+    # Increase by 20% for safety margin. Use the calculated cutoff if none is provided.
+    cutoff = (1 + 0.20) * average_similarity if cutoff is None else cutoff
     for file in os.listdir(source_directory):
         if is_image_file(file):
             file_path = os.path.join(source_directory, file)
