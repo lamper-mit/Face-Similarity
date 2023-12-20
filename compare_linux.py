@@ -174,6 +174,6 @@ if __name__ == "__main__":
     source_directory = sys.argv[1]
     target_directory = sys.argv[2]
     reference_directory = sys.argv[3]
-    distance_cutoff = float(sys.argv[4]) if len(sys.argv) == 5 else 0.45
+    distance_cutoff = float(sys.argv[4]) if len(sys.argv) == 5 else None
 
     verify_and_copy(source_directory, target_directory, reference_directory, distance_cutoff)
