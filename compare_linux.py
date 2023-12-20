@@ -105,7 +105,7 @@ def filter_embeddings_and_calculate_average_similarity(embeddings, outlier_thres
                                   for j in range(i+1, num_embeddings) if non_outliers[i] and non_outliers[j]])
 
     return filtered_embeddings, average_similarity
-def verify_and_copy(source_directory, target_directory, reference_directory, cutoff=None,outlier_threshold=1.0)):
+def verify_and_copy(source_directory, target_directory, reference_directory, cutoff=None,outlier_threshold=1.0):
       """
     Verify images in the source directory against the reference directory,
     and copy images that meet the similarity cutoff to the target directory.
