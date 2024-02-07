@@ -39,7 +39,7 @@ def ensure_rgb_format(image_path):
 
 def get_embedding(photo_path):
     try:
-        detected_faces = functions.extract_faces(photo_path, detector_backend = 'opencv')
+        detected_faces = DeepFace.extract_faces(photo_path, detector_backend = 'opencv')
     except ValueError:
         print(f"No face detected in {photo_path}. Skipping...")
         return None
@@ -48,7 +48,15 @@ def get_embedding(photo_path):
     if np.isnan(embedding).any():
         print(f"Warning: NaN values detected in embedding for {photo_path}")
     return embedding
+def save_embeddings(embeddings, filepath):
+    with open(filepath, 'w') as f:
+        json.dump(embeddings, f)
 
+# Function to load embeddings from a JSON file
+def load_embeddings(filepath):
+    with open(filepath, 'r') as f:
+        embeddings = json.load(f)
+    return embeddings
     
 def calculate_similarity_scores(photo_path, source_embeddings):
     target_embedding = get_embedding(photo_path)
@@ -116,18 +124,33 @@ def verify_and_copy(source_directory, target_directory, reference_directory, cut
     reference_directory (str): Path to the reference directory containing reference images.
     cutoff (float, optional): The similarity score cutoff. If None, calculated dynamically.
     """
+    embeddings_file = os.path.join(reference_directory, 'reference_embeddings.json')
     reference_embeddings = []
-    for file in os.listdir(reference_directory):
-        if is_image_file(file):
-            file_path = os.path.join(reference_directory, file)
-            if file.lower().endswith('.heic'):
-                file_path = convert_heic_to_jpg(file_path)
-            ensure_rgb_format(file_path)
-            
-            embedding = get_embedding(file_path)
-            if embedding is not None:
-                reference_embeddings.append(np.array(embedding))
 
+    # Check if the embeddings file exists and load it
+    if os.path.exists(embeddings_file):
+        print("Loading existing embeddings...")
+        reference_embeddings = load_embeddings(embeddings_file)
+        reference_embeddings = [np.array(emb) for emb in reference_embeddings]  # Convert lists back to numpy arrays
+    else:
+        # Calculate embeddings for reference images
+        print("Calculating new embeddings...")
+        for file in os.listdir(reference_directory):
+            if is_image_file(file):
+                file_path = os.path.join(reference_directory, file)
+                # Check and convert HEIC files if necessary
+                if file.lower().endswith('.heic'):
+                    # Uncomment the next line if you've implemented the convert_heic_to_jpg function
+                    file_path = convert_heic_to_jpg(file_path)
+                ensure_rgb_format(file_path)
+                
+                embedding = get_embedding(file_path)
+                if embedding is not None:
+                    reference_embeddings.append(embedding.tolist())  # Convert numpy array to list for JSON serialization
+
+        # Save the newly calculated embeddings
+        save_embeddings(reference_embeddings, embeddings_file)
+        reference_embeddings = [np.array(emb) for emb in reference_embeddings]  # Convert lists back to numpy arrays for further processing
     filtered_reference_embeddings, average_similarity = filter_embeddings_and_calculate_average_similarity(reference_embeddings, outlier_threshold)
 
     cutoff = (1 + 0.20) * average_similarity if cutoff is None else cutoff

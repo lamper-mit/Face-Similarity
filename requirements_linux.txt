@@ -3,3 +3,4 @@ pillow
 pyheif
 scikit-learn
 scipy
+deepface
