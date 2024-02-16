@@ -9,7 +9,7 @@ import numpy as np
 #import pyheif
 #from deepface.commons import functions
 from sklearn.ensemble import IsolationForest
-from scipy.spatial import distance
+from scipy.spatial.distance import cosine
 from scipy.stats import zscore
 # List of allowed image extensions
 ALLOWED_EXTENSIONS = {'.jpg', '.jpeg', '.png', '.bmp', '.gif', '.heic', '.tiff'}
@@ -45,6 +45,7 @@ def get_embedding(photo_path):
         return None
     results = DeepFace.represent(img_path=photo_path, model_name="VGG-Face", enforce_detection=True)
     embedding =  np.array(results[0]['embedding'])
+    #norm = np.linalg.norm(embedding)
     if np.isnan(embedding).any():
         print(f"Warning: NaN values detected in embedding for {photo_path}")
     return embedding
@@ -64,21 +65,21 @@ def calculate_similarity_scores(photo_path, source_embeddings):
         print(f"Skipping {photo_path} due to no embedding.")
         return None
 
-    distances = []
+    similarities = []
     for embedding in source_embeddings:
-        distance = np.linalg.norm(np.array(embedding) - np.array(target_embedding))
-        distances.append(distance)
-    print(f"Distances for {photo_path}: {distances}")
+        similarity = 1 - cosine(np.array(embedding), np.array(target_embedding))
+        similarities.append(similarity)
+    print(f"Similarities for {photo_path}: {similarities}")
     print(f"Target embedding for {photo_path}: {target_embedding}")
 
     # Calculate the mean of the distances
-    mean_distance = np.mean(distances)
-    if np.isnan(mean_distance):
+    mean_similarity = np.mean(similarities)
+    if np.isnan(mean_similarity):
         print(f"Warning: NaN similarity score for {photo_path}")
         return None
-    return mean_distance
+    return mean_similarity
 
-def filter_embeddings_and_calculate_average_similarity(embeddings, outlier_threshold=1.0):
+def filter_embeddings_and_calculate_average_similarity(embeddings, outlier_threshold=0.45):
     """
     Remove outliers based on L2 norm and calculate the average similarity score among the remaining embeddings.
 
@@ -90,30 +91,31 @@ def filter_embeddings_and_calculate_average_similarity(embeddings, outlier_thres
     tuple: A tuple containing the filtered embeddings and the average similarity score.
     """
     num_embeddings = len(embeddings)
-    distances_matrix = np.zeros((num_embeddings, num_embeddings))
+    similarity_matrix = np.zeros((num_embeddings, num_embeddings))
 
     # Calculate pairwise L2 distances
     for i in range(num_embeddings):
         for j in range(i + 1, num_embeddings):
-            distance = np.linalg.norm(embeddings[i] - embeddings[j])
-            distances_matrix[i, j] = distance
-            distances_matrix[j, i] = distance
+            similarity = 1 - cosine(embeddings[i],embeddings[j])
+            similarity_matrix[i, j] = similarity
+            similarity_matrix[j, i] = similarity
 
     # Determine the mean distance for each embedding
-    mean_distances = np.mean(distances_matrix, axis=1)
-
+    mean_similarities = np.mean(similarity_matrix, axis=1)
+    print(mean_similarities)
     # Identify embeddings with mean distance above the threshold
-    non_outliers = mean_distances < outlier_threshold
-
+    print(outlier_threshold)
+    non_outliers = mean_similarities > outlier_threshold
+    print(non_outliers)
     # Filter out outliers
     filtered_embeddings = [emb for idx, emb in enumerate(embeddings) if non_outliers[idx]]
 
     # Calculate average similarity (distance) among the remaining embeddings
-    average_similarity = np.mean([distances_matrix[i, j] for i in range(num_embeddings) 
+    average_similarity = np.mean([similarity_matrix[i, j] for i in range(num_embeddings) 
                                   for j in range(i+1, num_embeddings) if non_outliers[i] and non_outliers[j]])
 
     return filtered_embeddings, average_similarity
-def verify_and_copy(source_directory, target_directory, reference_directory, cutoff=None, outlier_threshold=1.0):
+def verify_and_copy(source_directory, target_directory, reference_directory, cutoff=0.45):
     """
     Verify images in the source directory against the reference directory,
     and copy images that meet the similarity cutoff to the target directory.
@@ -152,9 +154,9 @@ def verify_and_copy(source_directory, target_directory, reference_directory, cut
         # Save the newly calculated embeddings
         save_embeddings(reference_embeddings, embeddings_file)
         reference_embeddings = [np.array(emb) for emb in reference_embeddings]  # Convert lists back to numpy arrays for further processing
-    filtered_reference_embeddings, average_similarity = filter_embeddings_and_calculate_average_similarity(reference_embeddings, outlier_threshold)
+    filtered_reference_embeddings, average_similarity = filter_embeddings_and_calculate_average_similarity(reference_embeddings)
 
-    cutoff = (1 + 0.20) * average_similarity if cutoff is None else cutoff
+    #cutoff = (1 + 0.20) * average_similarity if cutoff is None else cutoff
     
     scores = {}
     for file in os.listdir(source_directory):
@@ -167,9 +169,9 @@ def verify_and_copy(source_directory, target_directory, reference_directory, cut
                 continue
             scores[file_path] = similarity_score
     
-    sorted_scores = dict(sorted(scores.items(), key=lambda item: item[1]))
+    sorted_scores = dict(sorted(scores.items(), key=lambda item: item[1], reverse=True))
     if cutoff is not None:
-        filtered_scores = {k: v for k, v in sorted_scores.items() if v < cutoff}
+        filtered_scores = {k: v for k, v in sorted_scores.items() if v > cutoff}
         for photo_path in filtered_scores.keys():
             if os.path.exists(photo_path):
                 file_name = os.path.basename(photo_path)
