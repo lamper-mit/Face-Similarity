@@ -6,6 +6,8 @@ import json
 from deepface import DeepFace
 from PIL import Image
 import numpy as np
+import base64
+from io import BytesIO
 from scipy.spatial.distance import cosine
 from scipy.stats import zscore
 # List of allowed image extensions
@@ -41,12 +43,20 @@ def ensure_rgb_format(image_path):
             img.save(image_path)
 
 def get_embedding(photo_path):
+    if os.path.exists(photo_path):
+        image = Image.open(photo_path)
+    else:
+        photo_base64 = photo_path
+        image_bytes = base64.b64decode(photo_base64)
+        image = Image.open(BytesIO(image_bytes))
+    image_array = np.array(image)
     try:
-        detected_faces = DeepFace.extract_faces(photo_path, detector_backend = 'opencv')
+        detected_faces = DeepFace.extract_faces(image_array, detector_backend = 'opencv')
     except ValueError:
-        print(f"No face detected in {photo_path}. Skipping...")
+        #print(f"No face detected in {photo_path}. Skipping...")
+        print("No face detected")
         return None
-    results = DeepFace.represent(img_path=photo_path, model_name="VGG-Face", enforce_detection=True)
+    results = DeepFace.represent(img_path=image_array, model_name="VGG-Face", enforce_detection=True)
     embedding =  np.array(results[0]['embedding'])
     #norm = np.linalg.norm(embedding)
     if np.isnan(embedding).any():
@@ -65,15 +75,16 @@ def load_embeddings(filepath):
 def calculate_similarity_scores(photo_path, source_embeddings):
     target_embedding = get_embedding(photo_path)
     if target_embedding is None:
-        print(f"Skipping {photo_path} due to no embedding.")
+        #print(f"Skipping {photo_path} due to no embedding.")
+        print("no embedding")
         return None
 
     similarities = []
     for embedding in source_embeddings:
         similarity = 1 - cosine(np.array(embedding), np.array(target_embedding))
         similarities.append(similarity)
-    print(f"Similarities for {photo_path}: {similarities}")
-    print(f"Target embedding for {photo_path}: {target_embedding}")
+    #print(f"Similarities for {photo_path}: {similarities}")
+    #print(f"Target embedding for {photo_path}: {target_embedding}")
 
     # Calculate the mean of the distances
     mean_similarity = np.mean(similarities)
@@ -159,19 +170,39 @@ def verify_and_copy(source_directory, target_directory, reference_directory, cut
     #cutoff = (1 + 0.20) * average_similarity if cutoff is None else cutoff
     
     scores = {}
-    for file in os.listdir(source_directory):
-        if is_image_file(file):
-            file_path = os.path.join(source_directory, file)
-            ensure_rgb_format(file_path)
-            
-            similarity_score = calculate_similarity_scores(file_path, filtered_reference_embeddings)
-            if similarity_score is None:
-                continue
-            scores[file_path] = similarity_score
-    
+    #check to see whether the directory is a path or a list
+    if isinstance(source_directory, (str, bytes, os.PathLike)):
+        for file in os.listdir(source_directory):
+            if is_image_file(file):
+                file_path = os.path.join(source_directory, file)
+                ensure_rgb_format(file_path)
+                
+                similarity_score = calculate_similarity_scores(file_path, filtered_reference_embeddings)
+                if similarity_score is None:
+                    continue
+                scores[file_path] = similarity_score
+    else:
+        for index,image in enumerate(source_directory):
+            similarity_score = calculate_similarity_scores(image, filtered_reference_embeddings)
+            if similarity_score is not None:
+                # Assuming you want to use the index in the key or for some other purpose
+                scores[f"Image {index}"] = similarity_score
     sorted_scores = dict(sorted(scores.items(), key=lambda item: item[1], reverse=True))
     if cutoff is not None:
         filtered_scores = {k: v for k, v in sorted_scores.items() if v > cutoff}
+        if isinstance(source_directory, list):
+        # Initialize an empty list to hold base64 strings that meet the cutoff
+            filtered_base64_strings = []
+        
+            # Iterate through the filtered scores
+            for key in filtered_scores.keys():
+                # Extract the index from the key (assuming keys are in the format "Image {index}")
+                index = int(key.split()[1])
+                # Append the corresponding base64 string from the original list
+                filtered_base64_strings.append(source_directory[index])
+        
+            # Return the list of filtered base64 strings
+            return filtered_base64_strings
         for photo_path in filtered_scores.keys():
             if os.path.exists(photo_path):
                 file_name = os.path.basename(photo_path)
