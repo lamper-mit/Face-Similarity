@@ -1,4 +1,4 @@
-0000000000000000000000000#!/usr/bin/env python
+#!/usr/bin/env python
 import sys
 import os
 import shutil
