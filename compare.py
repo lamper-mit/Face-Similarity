@@ -138,6 +138,7 @@ def verify_and_copy(source_directory, target_directory, reference_directory, cut
     reference_directory (str): Path to the reference directory containing reference images.
     cutoff (float, optional): The similarity score cutoff. If None, calculated dynamically.
     """
+    # making sure pipeline continues to run
     if not os.path.exists(reference_directory):
         return []
     embeddings_file = os.path.join(reference_directory, 'reference_embeddings.json')
