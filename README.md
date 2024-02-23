@@ -5,8 +5,8 @@ WINDOWS NOTE: heic images are currently not comptaible, take note of the image t
 
 Parameters:
 source_directory - Photos that will be scored on face similarity
-target_directory - Where the photos that meet the cutoff and the scores will be placed
 reference_directory - Photos that the source will be compared to
+target_directory - Where the photos that meet the cutoff and the scores will be placed
 distance_cutoff - Cutoff value for similarity, default is .45
 
 Download and Installation Guide:
@@ -41,8 +41,8 @@ Running the tool:
 
 Linux/Max:
 
-./compare.py /path/to/source_directory /path/to/target_directory /path/to/reference_directory distance_cutoff
+./compare.py /path/to/source_directory /path/to/reference_directory /path/to/target_directory distance_cutoff
 
 Windows:
 
-python compare.py \path\to\source_directory \path\to\target_directory \path\to\reference_directory distance_cutoff
+python compare.py \path\to\source_directory \path\to\reference_directory \path\to\target_directory distance_cutoff

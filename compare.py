@@ -127,15 +127,15 @@ def filter_embeddings_and_calculate_average_similarity(embeddings, outlier_thres
                                   for j in range(i+1, num_embeddings) if non_outliers[i] and non_outliers[j]])
 
     return filtered_embeddings, average_similarity
-def verify_and_copy(source_directory, target_directory, reference_directory, cutoff=0.45):
+def verify_and_copy(source_directory, reference_directory, target_directory=None, cutoff=0.45):
     """
     Verify images in the source directory against the reference directory,
     and copy images that meet the similarity cutoff to the target directory.
 
     Args:
     source_directory (str): Path to the source directory containing images to be verified.
-    target_directory (str): Path to the target directory where matching images will be copied.
     reference_directory (str): Path to the reference directory containing reference images.
+    target_directory (str): Path to the target directory where matching images will be copied.
     cutoff (float, optional): The similarity score cutoff. If None, calculated dynamically.
     """
     # making sure pipeline continues to run
@@ -227,8 +227,8 @@ if __name__ == "__main__":
         sys.exit(1)
 
     source_directory = sys.argv[1]
-    target_directory = sys.argv[2]
-    reference_directory = sys.argv[3]
+    reference_directory = sys.argv[2]
+    target_directory = sys.argv[3]
     distance_cutoff = float(sys.argv[4]) if len(sys.argv) == 5 else None
 
-    verify_and_copy(source_directory, target_directory, reference_directory, distance_cutoff)
+    verify_and_copy(source_directory, reference_directory, target_directory, distance_cutoff)
