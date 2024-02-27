@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 import sys
 import os
 import shutil
@@ -54,12 +53,10 @@ def get_embedding(photo_path):
     try:
         detected_faces = DeepFace.extract_faces(image_array, detector_backend = 'opencv')
     except ValueError:
-        #print(f"No face detected in {photo_path}. Skipping...")
         print("No face detected")
         return None
     results = DeepFace.represent(img_path=image_array, model_name="VGG-Face", enforce_detection=True)
     embedding =  np.array(results[0]['embedding'])
-    #norm = np.linalg.norm(embedding)
     if np.isnan(embedding).any():
         print(f"Warning: NaN values detected in embedding for {photo_path}")
     return embedding
@@ -76,7 +73,6 @@ def load_embeddings(filepath):
 def calculate_similarity_scores(photo_path, source_embeddings):
     target_embedding = get_embedding(photo_path)
     if target_embedding is None:
-        #print(f"Skipping {photo_path} due to no embedding.")
         print("no embedding")
         return None
 
@@ -84,8 +80,6 @@ def calculate_similarity_scores(photo_path, source_embeddings):
     for embedding in source_embeddings:
         similarity = 1 - cosine(np.array(embedding), np.array(target_embedding))
         similarities.append(similarity)
-    #print(f"Similarities for {photo_path}: {similarities}")
-    #print(f"Target embedding for {photo_path}: {target_embedding}")
 
     # Calculate the mean of the distances
     mean_similarity = np.mean(similarities)
@@ -170,7 +164,6 @@ def verify_and_copy(source_directory, reference_directory, target_directory=None
         reference_embeddings = [np.array(emb) for emb in reference_embeddings]  # Convert lists back to numpy arrays for further processing
     filtered_reference_embeddings, average_similarity = filter_embeddings_and_calculate_average_similarity(reference_embeddings)
 
-    #cutoff = (1 + 0.20) * average_similarity if cutoff is None else cutoff
 
     scores = {}
     #check to see whether the directory is a path or a list
